@@ -41,6 +41,7 @@ Tested on a treadle feeder with a 9 kg hopper. Any covered hopper should work.
 
 - **Daytime readings are noise.** Birds lift the treadle flap, and the sensor then sees spikes of ~120–175 mm. The firmware runs a 3-minute median (36 × 5 s samples), but only the quiet-time readings are reliable.
 - **Empty is closer than you'd think.** Feed cones and slumps, so an empty hopper read ~48–50 mm at quiet times rather than the full depth. Our first threshold (≥70 mm) never fired when the feeder really ran out.
+- **For a trend graph, use one reading per night.** `sensor.chicken_feeder_nightly_level` takes the median of valid readings from 00:00 to 05:00 each day. In our data it climbs steadily (22 → 37 → 41 → 48 mm over four days), then drops on refill. Rolling 6 h medians and percentiles still wobbled by ±20 mm, because daytime readings are contaminated in both directions.
 - Our numbers: **full ≈ 16–27 mm, low ≥ 40 mm, empty ≥ 46 mm.** Measure your own: log a full night after a refill, and a night when it's actually empty.
 - "No Target" / "Out of Range" is treated as empty. If the box falls off the lid, the sensor sees the ground and gives a false "empty".
 - **If it keeps dropping off Wi-Fi, suspect power first.** Our dropouts were brownouts: a 5 W water heater shared the C3's 1 A USB supply. Giving the heater enough headroom (we moved both onto a 2 A supply) fixed it. The sensor alone doesn't need 2 A. (Signal inside a galvanised feeder cage was fine at about −53 dBm.)

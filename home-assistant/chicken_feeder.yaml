@@ -7,7 +7,47 @@
 # are dominated by the flap). Quiet-time readings with feed: 38-44 mm (44 = last morning before
 # empty). So judge only at quiet times: 17:30 (median of last hour) and 08:00 (06:30 snapshot).
 # Low >= 40 mm, empty >= 46 mm. Full ~27 mm (recheck after the 18 Nov refill).
+template:
+  # 20 Nov 2026 (John): the raw/1h graphs are dominated by feeding events. Keep only
+  # plausible feed-surface readings (5-100 mm). 0 = No Target/too close, >100 = flap
+  # open and the sensor seeing the ground. Invalid samples hold the last good value.
+  - sensor:
+      - name: "Chicken feeder distance valid"
+        unique_id: chicken_feeder_distance_valid
+        unit_of_measurement: mm
+        state_class: measurement
+        state: >
+          {% set d = states('sensor.chicken_feeder_level_feeder_distance') | float(-1) %}
+          {% if 5 <= d <= 100 %}{{ d }}{% else %}{{ this.state if this.state | is_number else none }}{% endif %}
+
+  # The trend line: ONE value per night (00:00-05:00 median). Backtest 14-19 Nov:
+  # 22.5 -> 37.5 -> 41 -> 48.5 (empty) -> refill 15.5. A steady climb with no feeding noise.
+  # Daytime readings are contaminated both ways (flap up / heads in the way), so a
+  # rolling 6 h median or percentile still wobbled by +-20 mm.
+  - trigger:
+      - trigger: time
+        at: "05:00:00"
+    sensor:
+      - name: "Chicken feeder nightly level"
+        unique_id: chicken_feeder_nightly_level
+        unit_of_measurement: mm
+        state_class: measurement
+        state: >
+          {% set m = states('sensor.chicken_feeder_valid_median_5h') %}
+          {{ m | float if m | is_number else this.state }}
+
 sensor:
+  # Median of valid readings over the last 5 h. Read only at 05:00 (birds roosting, flap still).
+  - platform: statistics
+    name: "Chicken feeder valid median 5h"
+    unique_id: chicken_feeder_valid_median_5h
+    entity_id: sensor.chicken_feeder_distance_valid
+    state_characteristic: median
+    max_age:
+      hours: 5
+    sampling_size: 2000
+    precision: 1
+
   - platform: statistics
     name: "Chicken feeder distance median 1h"
     unique_id: chicken_feeder_distance_median_1h
