@@ -38,6 +38,12 @@ The VL6180X component is [thedayowl/esphome-vl6180x](https://github.com/thedayow
 
 ## TODO / future version
 
+**Goal: make it a genuinely low-power device** (battery or solar, no USB lead to the run).
+
+- [ ] **Deep sleep** between readings. Today the C3 is always on Wi-Fi, sampling every 5 s and reporting every 30 s. Waking every 15–60 min (or only at the quiet-time windows) for a burst of samples, sending one median, then sleeping would cut consumption by orders of magnitude
+- [ ] **Accelerometer wake-up** (e.g. LIS3DH/ADXL345 interrupt on a wake GPIO): wake and measure when the treadle/lid moves or after a refill, instead of on a timer
+- [ ] Power down the VL6180X between bursts (its GPIO0/CE pin), and use a low-quiescent regulator
+- [ ] Battery voltage reporting and a low-battery alert
 - [ ] **Beeper/buzzer** at the feeder for a local low-feed warning
 - [ ] Move the empty/low logic onto the device (quiet-time windows) so it works without HA
 - [ ] Auto-calibration (learn full/empty from the readings after a refill)
