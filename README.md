@@ -2,7 +2,15 @@
 
 Tells you when the chicken feeder is running low or empty. It's rough but it works: it has run on a real flock since November 2026. Released as-is in the hope that others will refine it.
 
-![Parts](images/parts.png)
+![Feeder with the lid open, sensor box under the lid, and a curious hen](images/feeder_lid_open_with_hen.jpg)
+
+| The feeder in its shelter | Sensor box under the hopper lid |
+|---|---|
+| ![Treadle feeder in a wooden shelter](images/feeder_overview.jpg) | ![Sensor box mounted under the lid](images/sensor_under_lid.jpg) |
+
+![Front view, lid open](images/feeder_front_lid_open.jpg)
+
+![Printed enclosure parts](images/parts.png)
 
 ## How it works
 
