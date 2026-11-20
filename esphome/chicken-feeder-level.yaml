@@ -1,0 +1,118 @@
+# Chicken feeder level: VL6180X ToF under the hopper lid of the SuperHandy
+# treadle feeder (9 kg; any covered hopper works), looking straight down at the feed. 5 Nov 2026.
+# John: "Just need to know when it's empty." The lid keeps the sensor dry;
+# ESP32 + sensor live in a printed box (see enclosure/), USB powered.
+#
+# Board: LOLIN (Wemos) ESP32-C3 Mini
+# Wiring (VL6180X -> LOLIN C3 Mini): VIN 3V3, GND GND, SDA GPIO8, SCL GPIO10
+# Mount: centre of the lid underside, sensor facing straight down, clear of
+# the hopper walls (beam is a ~25 deg cone).
+#
+# Calibration: read "Feeder distance" with the hopper FULL (FULL_MM) and
+# EMPTY (EMPTY_MM), set them below, re-flash. If the bottom is beyond the
+# sensor's range (~20 cm) it reports "No Target"/"Out of Range", which this
+# config also treats as empty.
+
+substitutions:
+  name: chicken-feeder-level
+  friendly_name: Chicken feeder level
+  FULL_MM: "27"     # 7 Nov installed in the box: hopper "pretty full" reads 25-29 mm
+  EMPTY_MM: "80"    # 9 Nov, John: >70 mm = feed no longer reaches the trough (was 180)
+  EMPTY_MARGIN_MM: "10"   # empty flag at >= 70 mm
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+
+esp32:
+  board: lolin_c3_mini
+  variant: esp32c3
+  framework:
+    type: esp-idf
+
+external_components:
+  - source:
+      type: git
+      url: https://github.com/thedayowl/esphome-vl6180x
+      ref: 3edff0aa2d62d9140f4fa0b97730142ad5db5f5f   # vetted 5 Nov 2026
+    components: [vl6180x]
+
+logger:
+api:
+  encryption:
+    key: !secret feeder_api_key
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  output_power: 8.5dB   # LOLIN C3 Mini v2.1 antenna quirk: full power fails to associate
+  ap: {}
+
+captive_portal:
+
+
+i2c:
+  sda: GPIO8
+  scl: GPIO10
+  scan: true
+
+vl6180x:
+  - id: feeder_tof
+    address: 0x29
+    update_interval: 5s    # 11 Nov: sample fast, report every 30 s via median
+    range:
+      id: feeder_distance
+      name: "Feeder distance"
+      filters:
+        # 11 Nov, John: ~120-175 mm spikes = birds lifting the flap, so the
+        # sensor sees the ground. 3-min median (36 x 5 s) rejects flap-open
+        # readings unless the flap is up for more than half the window.
+        - median:
+            window_size: 36
+            send_every: 6
+            send_first_at: 6
+    range_status:
+      id: feeder_range_status
+      name: "Feeder sensor status"
+
+sensor:
+  - platform: template
+    name: "Feed level"
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    state_class: measurement
+    update_interval: 60s
+    lambda: |-
+      std::string st = id(feeder_range_status).state;
+      if (st == "No Target" || st == "Out of Range") return 0.0f;
+      if (st == "Target Too Close") return 100.0f;
+      float d = id(feeder_distance).state;
+      if (isnan(d)) return NAN;
+      float pct = (${EMPTY_MM} - d) * 100.0f / (${EMPTY_MM} - ${FULL_MM});
+      return std::max(0.0f, std::min(100.0f, pct));
+
+  - platform: wifi_signal
+    name: "WiFi signal"
+    update_interval: 120s
+
+binary_sensor:
+  - platform: template
+    name: "Feeder empty"
+    device_class: problem
+    lambda: |-
+      std::string st = id(feeder_range_status).state;
+      if (st == "No Target" || st == "Out of Range") return true;
+      if (st == "Target Too Close") return false;
+      float d = id(feeder_distance).state;
+      if (isnan(d)) return {};   // sensor fault: unknown, not "empty"
+      return d >= (${EMPTY_MM} - ${EMPTY_MARGIN_MM});
+    filters:
+      - delayed_on: 2h     # 9 Nov: rides out the cone-collapse jumps
+      - delayed_off: 15min
+
+text_sensor:
+  - platform: wifi_info
+    bssid:
+      name: "WiFi BSSID"

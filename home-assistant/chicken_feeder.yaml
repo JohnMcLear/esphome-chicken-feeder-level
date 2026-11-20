@@ -1,0 +1,143 @@
+# Chicken feeder empty alert (7 Nov 2026). The VL6180X C3 under the hopper lid
+# sets binary_sensor...feeder_empty after 2 h at >=70 mm / out of range (9 Nov recal)
+# (delayed_on is on the device). A sensor fault reads unknown, not empty.
+# If the box falls off the lid it sees the ground => a false "empty".
+# 18 Nov 2026: the feeder ran EMPTY on 17 Nov and the alert never fired. With an empty hopper
+# the quiet-time (birds roosting) reading sits at ~48-50 mm, NOT >=70 (the daytime readings
+# are dominated by the flap). Quiet-time readings with feed: 38-44 mm (44 = last morning before
+# empty). So judge only at quiet times: 17:30 (median of last hour) and 08:00 (06:30 snapshot).
+# Low >= 40 mm, empty >= 46 mm. Full ~27 mm (recheck after the 18 Nov refill).
+sensor:
+  - platform: statistics
+    name: "Chicken feeder distance median 1h"
+    unique_id: chicken_feeder_distance_median_1h
+    entity_id: sensor.chicken_feeder_level_feeder_distance
+    state_characteristic: median
+    max_age:
+      hours: 1
+    sampling_size: 200
+
+input_number:
+  chicken_feeder_dawn_mm:
+    name: "Chicken feeder 06:30 reading"
+    min: 0
+    max: 300
+    step: 0.5
+    unit_of_measurement: mm
+    mode: box
+
+automation:
+  - id: chicken_feeder_dawn_snapshot
+    alias: "Chickens: feeder 06:30 level snapshot"
+    mode: single
+    triggers:
+      - trigger: time
+        at: "06:30:00"
+    conditions:
+      - condition: template
+        value_template: "{{ states('sensor.chicken_feeder_distance_median_1h') | is_number }}"
+    actions:
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.chicken_feeder_dawn_mm
+        data:
+          value: "{{ states('sensor.chicken_feeder_distance_median_1h') | float }}"
+
+  - id: chicken_feeder_quiet_level_check
+    alias: "Chickens: feeder low/empty check (17:30 + 08:00)"
+    mode: single
+    triggers:
+      - trigger: time
+        at: "17:30:00"
+        id: dusk
+      - trigger: time
+        at: "08:00:00"
+        id: dawn
+    variables:
+      mm: >
+        {{ (states('sensor.chicken_feeder_distance_median_1h') if trigger.id == 'dusk'
+            else states('input_number.chicken_feeder_dawn_mm')) | float(0) }}
+    conditions:
+      - condition: template
+        value_template: "{{ mm >= 40 }}"
+    actions:
+      - action: notify.send_message
+        target:
+          entity_id: notify.YOUR_NOTIFIER
+        data:
+          message: >
+            🐔 Chicken feeder {{ 'EMPTY' if mm >= 46 else 'LOW' }}: {{ mm | round(1) }} mm
+            ({{ 'at dusk' if trigger.id == 'dusk' else 'at dawn' }}; empty ≈ 48–50, full ≈ 27).
+            {{ 'Top it up today.' if mm >= 46 else 'Top up in the next day or so.' }}
+
+  - id: chicken_feeder_empty_alert
+    alias: "Chickens: feeder empty alert"
+    mode: single
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.chicken_feeder_level_feeder_empty
+        from: "off"
+        to: "on"
+    actions:
+      - action: notify.send_message
+        target:
+          entity_id: notify.YOUR_NOTIFIER
+        data:
+          message: >
+            🐔 Chicken feeder looks EMPTY (distance
+            {{ states('sensor.chicken_feeder_level_feeder_distance') }} mm,
+            {{ states('sensor.chicken_feeder_level_feeder_sensor_status') }}).
+            Time to top up the hopper. (If it's actually full, the sensor box may have dropped off the lid.)
+
+  # 14 Nov 2026: the sensor went offline 12 Nov and nobody noticed for 2 days.
+  # Alert after 1 h offline, daytime only (08:00-21:00); 08:00 catch-up for overnight drops.
+  - id: chicken_feeder_sensor_offline_alert
+    alias: "Chickens: feeder sensor offline alert"
+    mode: single
+    triggers:
+      - trigger: state
+        entity_id: sensor.chicken_feeder_level_feeder_distance
+        to: "unavailable"
+        for: "01:00:00"
+      - trigger: time
+        at: "08:00:00"
+      - trigger: time
+        at: "14:00:00"
+    conditions:
+      - condition: state
+        entity_id: sensor.chicken_feeder_level_feeder_distance
+        state: "unavailable"
+        for: "01:00:00"
+      - condition: time
+        after: "08:00:00"
+        before: "21:00:00"
+    actions:
+      - action: notify.send_message
+        target:
+          entity_id: notify.YOUR_NOTIFIER
+        data:
+          message: >
+            🐔 Feeder level sensor OFFLINE since
+            {{ as_timestamp(states.sensor.chicken_feeder_level_feeder_distance.last_changed) | timestamp_custom('%a %H:%M') }}.
+            Check its 2 A USB supply/lead (brownout last time).
+
+  - id: chicken_feeder_sensor_back_online
+    alias: "Chickens: feeder sensor back online"
+    mode: single
+    triggers:
+      - trigger: state
+        entity_id: sensor.chicken_feeder_level_feeder_distance
+        from: "unavailable"
+        for: "00:02:00"
+    conditions:
+      - condition: template
+        value_template: "{{ trigger.from_state.last_changed < now() - timedelta(hours=1) }}"
+      - condition: time
+        after: "08:00:00"
+        before: "21:00:00"
+    actions:
+      - action: notify.send_message
+        target:
+          entity_id: notify.YOUR_NOTIFIER
+        data:
+          message: "🐔 Feeder level sensor back online ({{ states('sensor.chicken_feeder_level_feeder_distance') }} mm)."
