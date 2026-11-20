@@ -22,6 +22,10 @@ Tells you when the chicken feeder is running low or empty. It's rough but it wor
 
 ![HA sensors card: feed level, distance, empty flag, sensor status](images/ha_sensors_card.png)
 
+Alerts arrive on your phone (mock-up; the wording comes from the HA package and can be customised):
+
+<img src="images/phone_notification_mockup.png" alt="Phone notifications: Chicken feeder EMPTY and LOW" width="360">
+
 ## Hardware
 
 | Part | Notes |
