@@ -52,6 +52,12 @@ Key point: the 5 s sampling only exists to beat daytime flap noise, and continuo
 - [ ] Enclosure v2: proper mounting ears and a cable gland
 - [ ] Better handling of feed cone/slump, perhaps a wider-angle or multi-zone ToF sensor (e.g. VL53L5CX)
 
+**Hardware roadmap**
+
+- [ ] **Custom PCB**: ESP32-C3 + ToF + accelerometer + battery/charging on one board, sized for the enclosure
+- [ ] **Commercial product**, if viable: a sealed, battery-powered unit that clips under any hopper lid
+- [ ] **Market viability study**: who would buy it (backyard keepers, smallholders, farms), price point vs BOM, competing products, and channels (Home Assistant community, poultry suppliers)
+
 ## License
 
 MIT. Use it, fork it, improve it.
