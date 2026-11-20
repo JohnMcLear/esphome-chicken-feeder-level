@@ -18,6 +18,14 @@ Tells you when the chicken feeder is running low or empty. It's rough but it wor
 - A **LOLIN ESP32-C3 Mini** running ESPHome reports the distance to Home Assistant.
 - An HA package judges the level only at **quiet times** (17:30 and 06:30/08:00), when the birds aren't working the treadle flap, and sends a LOW or EMPTY alert.
 
+## What it looks like in Home Assistant
+
+![HA sensors card: feed level, distance, empty flag, sensor status](images/ha_sensors_card.png)
+
+The 1-hour median distance over two days. After a refill (about 16:30, 18 Nov) the overnight reading sits flat at about 16 mm. The daytime spikes are the birds lifting the treadle flap, which is why only quiet-time readings are used for alerts:
+
+![HA history: refill, flat overnight full reading, noisy daytime](images/ha_history_refill.png)
+
 ## Hardware
 
 | Part | Notes |
