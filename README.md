@@ -17,7 +17,7 @@ Tells you when the chicken feeder is running low or empty. It's rough but it wor
 | LOLIN (Wemos) ESP32-C3 Mini | Wi-Fi TX is set to 8.5 dB because some v2.1 boards won't associate at full power |
 | VL6180X breakout | I²C: SDA GPIO8, SCL GPIO10, 3V3, GND |
 | Printed enclosure | `enclosure/` (OpenSCAD source + STLs). PETG or ASA. It screws or zip-ties to the underside of the hopper lid. The sensor window is open on purpose, because a cover causes ToF crosstalk |
-| 2 A USB supply | A weak supply caused brownouts and offline periods |
+| 2 A USB supply | Don't share a weak supply with other kit; see below |
 
 Tested on a treadle feeder with a 9 kg hopper. Any covered hopper should work.
 
@@ -27,7 +27,7 @@ Tested on a treadle feeder with a 9 kg hopper. Any covered hopper should work.
 - **Empty is closer than you'd think.** Feed cones and slumps, so an empty hopper read ~48–50 mm at quiet times rather than the full depth. Our first threshold (≥70 mm) never fired when the feeder really ran out.
 - Our numbers: **full ≈ 16–27 mm, low ≥ 40 mm, empty ≥ 46 mm.** Measure your own: log a full night after a refill, and a night when it's actually empty.
 - "No Target" / "Out of Range" is treated as empty. If the box falls off the lid, the sensor sees the ground and gives a false "empty".
-- A metal (galvanised) feeder cage blocks Wi-Fi. Keep the ESP outside the cage, or use an external-antenna board.
+- **If it keeps dropping off Wi-Fi, suspect power first.** Our dropouts were brownouts: a 5 W water heater shared the C3's 1 A USB supply. A 2 A supply fixed it. (Signal inside a galvanised feeder cage was fine at about −53 dBm.)
 
 ## Install
 
@@ -41,7 +41,7 @@ The VL6180X component is [thedayowl/esphome-vl6180x](https://github.com/thedayow
 - [ ] **Beeper/buzzer** at the feeder for a local low-feed warning
 - [ ] Move the empty/low logic onto the device (quiet-time windows) so it works without HA
 - [ ] Auto-calibration (learn full/empty from the readings after a refill)
-- [ ] Enclosure v2: proper mounting ears, a cable gland, and an external-antenna option for metal cages
+- [ ] Enclosure v2: proper mounting ears and a cable gland
 - [ ] Better handling of feed cone/slump, perhaps a wider-angle or multi-zone ToF sensor (e.g. VL53L5CX)
 
 ## License
