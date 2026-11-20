@@ -40,6 +40,8 @@ The VL6180X component is [thedayowl/esphome-vl6180x](https://github.com/thedayow
 
 **Goal: make it a genuinely low-power device** (battery or solar, no USB lead to the run).
 
+Key point: the 5 s sampling only exists to beat daytime flap noise, and continuous sampling rules out deep sleep. Since only quiet-time readings are trustworthy anyway (birds roosting, flap still), a low-power version only needs to wake once or twice a day, take a short burst (say 10 samples in 10 s) and send the median.
+
 - [ ] **Deep sleep** between readings. Today the C3 is always on Wi-Fi, sampling every 5 s and reporting every 30 s. Waking every 15–60 min (or only at the quiet-time windows) for a burst of samples, sending one median, then sleeping would cut consumption by orders of magnitude
 - [ ] **Accelerometer wake-up** (e.g. LIS3DH/ADXL345 interrupt on a wake GPIO): wake and measure when the treadle/lid moves or after a refill, instead of on a timer
 - [ ] Power down the VL6180X between bursts (its GPIO0/CE pin), and use a low-quiescent regulator
